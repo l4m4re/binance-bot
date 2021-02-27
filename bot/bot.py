@@ -5,12 +5,11 @@ from binance.client import Client
 from binance.enums import *
 #from time import strptime
 
-SOCKET = "wss://stream.binance.com:9443/ws/thetausdt@kline_1m"
 
-RSI_PERIOD      = 14
+#RSI_PERIOD      = 14
 
-LEN_FAC         = 6
-SMA_PERIOD      = 400
+LEN_FAC         = 60
+SMA_PERIOD      = LEN_FAC * 200
 EMA_PERIOD      = LEN_FAC * 20
 FAST_LENGTH     = LEN_FAC * 23 
 SLOW_LENGTH     = LEN_FAC * 26
@@ -20,16 +19,19 @@ RSI_OVERBOUGHT  = 70
 RSI_OVERSOLD    = 30
 
 
-TRADE_SYMBOL    = "THETAUSD"
+#TRADE_SYMBOL    = "THETAUSDT"
+TRADE_SYMBOL    = "BTCUSDT"
+TICKER_FILE     = "../data/BTCUSDT_2020_1minutes.txt"
 TRADE_QUANTITY  = 10
 
 closes          = []
+profits         = []
 in_position     = False
 live            = False
 cur_close       = 0.0
 date_time       = time.localtime()
 
-client = Client(config.API_KEY, config.API_SECRET, tld='us')
+#client = Client(config.API_KEY, config.API_SECRET )
 
 # Stragegy : MACD/EMA Long Strategy
 # Source   : https://www.tradingview.com/script/o97VVZNr-MACD-EMA-Long-Strategy/
@@ -42,10 +44,11 @@ client = Client(config.API_KEY, config.API_SECRET, tld='us')
 
 def calcTrade():
 
-    global closes, in_position, cur_close
+    global closes, in_position, cur_close, live
 
-    print('.', end='')
-    sys.stdout.flush()
+    if live:
+        print('.', end='')
+        sys.stdout.flush()
 
     np_closes = numpy.array(closes)
 
@@ -145,7 +148,7 @@ def calcTrade():
 
        
 
-
+last_buy = 0.0
 
 def order(side, quantity, symbol, price, order_type=ORDER_TYPE_MARKET):
     try:
@@ -165,36 +168,56 @@ def order(side, quantity, symbol, price, order_type=ORDER_TYPE_MARKET):
     return True
 
 
-print_obos = True
+print_obos = False
 
 def buyBuyBuy():
-
-    global closes, in_position, cur_close, date_time, print_obos
-
-    if in_position:
-        print("Overbought! Sell! Sell! Sell!")
-        # put binance sell logic here
-        order_succeeded = order(SIDE_SELL, TRADE_QUANTITY, TRADE_SYMBOL, closes[-1])
-        if order_succeeded:
-            in_position = False
-    else:
-        if print_obos:
-            print(date_time, "It is overbought at", cur_close, "  but we don't own any. Nothing to do.")
-
-
-def sellSellSell():
-
-    global closes, in_position, cur_close, date_time, print_obos
+    global closes, in_position, cur_close, date_time, print_obos, last_buy
 
     if in_position:
         if print_obos:
             print(date_time, "It is oversold at", cur_close, " but you already own it, nothing to do.")
     else:
-        print("Oversold! Buy! Buy! Buy!")
+        #print("Oversold! Buy! Buy! Buy!")
         # put binance buy order logic here
         order_succeeded = order(SIDE_BUY, TRADE_QUANTITY, TRADE_SYMBOL, closes[-1])
         if order_succeeded:
+            last_buy = closes[-1]
             in_position = True
+
+
+def calc_average(num):
+    sum_num = 0
+    for t in num:
+        sum_num = sum_num + t           
+
+    avg = sum_num / len(num)
+    return avg
+
+
+def sellSellSell():
+    global closes, in_position, cur_close, date_time, print_obos, last_buy, profits
+
+    if in_position:
+        #print("Overbought! Sell! Sell! Sell!")
+        # put binance sell logic here
+        order_succeeded = order(SIDE_SELL, TRADE_QUANTITY, TRADE_SYMBOL, closes[-1])
+        if order_succeeded:
+            in_position = False
+            last_sell = closes[-1]
+            profit = 100*(last_sell-last_buy)/last_buy
+            print( "Profit        : {0:.2f}%".format(profit) )
+
+            profits.append(profit)
+            avg = calc_average(profits)
+            print( "Average profit: {0:.2f}%".format(avg) )
+
+    else:
+        if print_obos:
+            print(date_time, "It is overbought at", cur_close, "  but we don't own any. Nothing to do.")
+
+
+
+            
 
     
 def follow(thefile):
@@ -236,16 +259,17 @@ if __name__ == '__main__':
     #    print( kline )
 
     
-    logfile = open("ticks1m.txt","r")
-    loglines = follow(logfile)    # iterate over the generator
-    for line in loglines:
-        x = line.split(", ")
+    datafile = open(TICKER_FILE,"r")
+    datalines = follow(datafile)    # iterate over the generator
+    for line in datalines:
 
-        cur_close = float(x[1])
+        candle = json.loads(line)
+        #pprint.pprint(candle)
+
+        cur_close = float(candle['c'])
         closes.append(cur_close)
         
-        ts_str = x[0].split(".")
-        ts = time.strptime(ts_str[0], '%Y-%m-%d %H:%M:%S')
+        ts = time.gmtime(candle['T']/1000)
 
         date_time = time.strftime("%m/%d/%Y, %H:%M:%S",ts)
 
