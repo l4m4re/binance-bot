@@ -95,7 +95,7 @@ def on_message(msg):
 
 if __name__ == '__main__':
 
-    candlefile = open("ETHUSDT_live_1m.txt",'a')
+    candlefile = open("../data/ETHUSDT_live_1m.txt",'a')
     # perform file operations
 
     logging.basicConfig(filename='logfile.txt', level=logging.DEBUG)
