@@ -70,7 +70,7 @@ def on_message(msg):
     if msg['e'] == 'kline':
 
         #print('received message')
-        print('.', end='')
+        print('*', end='')
         sys.stdout.flush()
 
         kline = msg['k']
