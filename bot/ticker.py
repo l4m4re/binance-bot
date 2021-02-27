@@ -79,7 +79,7 @@ def on_message(msg):
         close            = kline['c']
         
         candle = {}
-        for elem in {'c', 'T', 'o', 'h', 'l', 'V' }:
+        for elem in {'c', 'T', 'o', 'h', 'l', 'v' }:
             candle[elem] = kline[elem]  
 
         if is_candle_closed:
@@ -95,7 +95,7 @@ def on_message(msg):
 
 if __name__ == '__main__':
 
-    candlefile = open("candles1m.txt",'a')
+    candlefile = open("ETHUSDT_live_1m.txt",'a')
     # perform file operations
 
     logging.basicConfig(filename='logfile.txt', level=logging.DEBUG)
