@@ -7,24 +7,23 @@ from utils import *
 class Macd(Indicator):
     """ Moving Average Convergence-Divergence (MACD) indicator class
             input:      data        = list or tuple of float or integer values
-                        parameter   = tuple (x, y, z); where x is short term ema, y is long term ema, and z is ema of the macd"""
+                        N   = tuple (x, y, z); where x is short term ema, y is long term ema, and z is ema of the macd"""
   
-    def __init__(self, parameter, *args, **kwargs):
-        Indicator.__init__(self, parameter, *args, **kwargs)
-        self.input = []
-        self.s_ema = Ema(parameter[0], self.key)
-        self.l_ema = Ema(parameter[1], self.key)
-        self.output = [] # macd
-        self.ema_macd = EmaMacd(parameter[2])
+    def __init__(self, N, K=(None,None,None)):
+        Indicator.__init__(self, N)
+        self.output   = [] # macd
+        self.s_ema    = Ema(N[0], K[0])
+        self.l_ema    = Ema(N[1], K[1])
+        self.ema_macd = EmaMacd(N[2],K[2])
         
-    def calculate(self, candle):
-        value = candle[self.key]
-        self.input.append(float(value))
-        self.s_ema.append(candle)
-        self.l_ema.append(candle)
+    def append(self, timestamp, value):
+        Indicator.append(self,timestamp,value)
+
+        self.s_ema.append(timestamp, value)
+        self.l_ema.append(timestamp, value)
         
         outputvalue = None
-        if len(self.input) >= self.parameter[1]:
+        if len(self.input) >= self.N[1]:
             try:    
                 outputvalue = self.s_ema[-1] - self.l_ema[-1]
             except:
@@ -32,42 +31,51 @@ class Macd(Indicator):
                 self.s_ema = self.s_ema[:-1]
                 self.l_ema = self.l_ema[:-1]
                 raise IndicatorError('error calculating macd value; reverting input data back to previous state')
+
         self.output.append(outputvalue)
-        ema_macd_candle = None
-        # make fake candle for ema_macd
-        if outputvalue != None: 
-            ema_macd_candle = {}
-            ema_macd_candle['T'] = candle['T']
-            ema_macd_candle['v'] = 0
-            for elem in {'c', 'o', 'h', 'l' }:
-                ema_macd_candle[elem] = outputvalue
-        self.ema_macd.append(ema_macd_candle)
-        
-    def revertToPreviousState(self):
+        self.ema_macd.append(timestamp, outputvalue)
+
+        return self.lastOutput()
+
+    def lastOutput(self):
+        if len(self.output) > 0:
+            return self.output[-1]
+        return None
+
+    def popHead(self):
         # remove previous virtual candle
-        Indicator.revertToPreviousState(self)
-        self.input = self.input[:-1]
+        Indicator.popHead(self)
+        self.output = self.output[1:]
+        self.s_ema.popHead()
+        self.l_ema.popHead()
+        self.ema_macd.popHead()
+
+    def popTail(self):
+        # remove previous virtual candle
+        Indicator.popTail(self)
         self.output = self.output[:-1]
-        self.s_ema.revertToPreviousState()
-        self.l_ema.revertToPreviousState()
-        self.ema_macd.revertToPreviousState()
+        self.s_ema.popTail()
+        self.l_ema.popTail()
+        self.ema_macd.popTail()
+
     
-    def validateParameter(self, parameter):
-        if type(parameter) is not tuple:
-            raise IndicatorError('invalid parameter for initializing Macd instance, should be an tuple; input: %s' % (self.parameter, ))
-        if len(parameter) != 3:
-            raise IndicatorError('invalid parameter for initializing Macd instance, should be an tuple with length 3 (e.g. 4,8,5); input: %s' % (self.parameter, ))
-        if parameter[0] >= parameter[1]:
-            raise IndicatorError('invalid parameter for initializing Macd instance, should be an tuple with length 3 (e.g. 4,8,5) and parameter 1 should be smaller than parameter 2; input: %s' % (self.parameter, ))
+    def validateN(self, N):
+        if type(N) is not tuple:
+            raise IndicatorError('invalid N for initializing Macd instance, should be an tuple; input: %s' % (self.N, ))
+        if len(N) != 3:
+            raise IndicatorError('invalid N for initializing Macd instance, should be an tuple with length 3 (e.g. 4,8,5); input: %s' % (self.N, ))
+        if N[0] >= N[1]:
+            raise IndicatorError('invalid N for initializing Macd instance, should be an tuple with length 3 (e.g. 4,8,5) and N 1 should be smaller than N 2; input: %s' % (self.N, ))
     
     # overrided functions
     def __str__(self):
         string = ''
         for i in range(len(self.input)):
-            string+='%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (i+1, timestamp2str(self.times[i]), self.input[i], str(self.s_ema[i])[:7], str(self.l_ema[i])[:7], str(self.output[i])[:7], str(self.ema_macd[i]))
-        return 'Macd(%s):\n%s' % (self.parameter, string)
+            string += '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (i+1, timestamp2str(self.times[i]), self.input[i],
+                        str(self.s_ema[i])[:7], str(self.l_ema[i])[:7], str(self.output[i])[:7], str(self.ema_macd[i]))
+        return 'Macd(%s):\n%s' % (self.N, string)
     def __repr__(self):
-        return 'Macd(%s)' % self.parameter
+        return 'Macd(%s)' % self.N
     def __len__(self):
         return len(self.output)
     def __getitem__(self, offset):
@@ -96,6 +104,14 @@ if __name__=='__main__':
             {"c": 7180.97000000, "T": 1577837699999, "o": 7181.60000000, "h": 7182.10000000, "l": 7180.24000000, "v": 9.11180900}, 
                       ]
     for i in input:
-        ind.append(i)
+        ind.appendCandle(i)
     print(ind)
+
+
+    ind = Macd((3,6,3),(0.1,0.2,0.3))
+    for i in input:
+        ind.appendCandle(i)
+    print(ind)
+   
+
 
