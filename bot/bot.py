@@ -1,6 +1,6 @@
 import websocket, json, pprint, talib, numpy
 import config
-import sys, time, os, time
+import sys, time, os
 from binance.client import Client
 from binance.enums import *
 #from time import strptime
@@ -264,7 +264,7 @@ if __name__ == '__main__':
     for line in datalines:
 
         candle = json.loads(line)
-        #pprint.pprint(candle)
+        pprint.pprint(candle)
 
         cur_close = float(candle['c'])
         closes.append(cur_close)
