@@ -1,0 +1,253 @@
+import json, pprint, talib, numpy
+import config
+import sys, time, os
+import numpy as np
+from trader import *
+from broker import *
+from utils import *
+import copy
+
+#TRADE_SYMBOL    = "THETAUSDT"
+TRADE_SYMBOL    = "BTCUSDT"
+TICKER_FILE     = "../data/BTCUSDT_2020_1minutes.txt"
+#TICKER_FILE     = "../data/BTCUSDT_2021_1minutes_2.txt"
+#TICKER_FILE     = "../data/BTCUSDT_2018-2020.txt"
+TRADE_QUANTITY  = 10
+
+trader = None
+broker = None
+
+def par2np(par):
+    return np.array([
+        par['sma_length']/1000,
+        #par['rsi_K']*100.0,
+        par['ema_K']*100.0,
+        par['fast_K']*100.0,
+        par['slow_K']*100.0,
+        par['macd_K']*100.0,
+        par['emamacd_K']*100.0,
+    ]) 
+    '''
+        par['sma_fac'],
+        par['ema_fac'],
+        par['mac_fac'],
+        par['offset'] 
+    '''
+
+def np2par(np):
+    par = {}
+    par['sma_length'] = int( (np[0] * 1000) + 0.5 )
+    #par['rsi_K']      = np[1]/100.0
+    par['ema_K']      = np[1]/100.0
+    par['fast_K']     = np[2]/100.0
+    par['slow_K']     = np[3]/100.0
+    par['macd_K']     = np[4]/100.0
+    par['emamacd_K']  = np[5]/100.0
+    '''
+    par['sma_fac']    = np[7]
+    par['ema_fac']    = np[8]
+    par['mac_fac']    = np[9]
+    par['offset']     = np[10]
+    '''
+
+    return par
+
+
+
+'''
+    Pure Python/Numpy implementation of the Nelder-Mead algorithm.
+    Reference: https://en.wikipedia.org/wiki/Nelder%E2%80%93Mead_method
+'''
+# source: https://github.com/fchollet/nelder-mead
+def nelder_mead(f, x_start,
+                step=0.1, no_improve_thr=10e-6,
+                no_improv_break=10, max_iter=0,
+                alpha=1., gamma=2., rho=-0.5, sigma=0.5):
+    '''
+        @param f (function): function to optimize, must return a scalar score
+            and operate over a numpy array of the same dimensions as x_start
+        @param x_start (numpy array): initial position
+        @param step (float): look-around radius in initial step
+        @no_improv_thr,  no_improv_break (float, int): break after no_improv_break iterations with
+            an improvement lower than no_improv_thr
+        @max_iter (int): always break after this number of iterations.
+            Set it to 0 to loop indefinitely.
+        @alpha, gamma, rho, sigma (floats): parameters of the algorithm
+            (see Wikipedia page for reference)
+
+        return: tuple (best parameter array, best score)
+    '''
+
+    # init
+    dim = len(x_start)
+    prev_best = f(x_start)
+    no_improv = 0
+    res = [[x_start, prev_best]]
+
+    for i in range(dim):
+        x = copy.copy(x_start)
+        x[i] = x[i] + step
+        score = f(x)
+        res.append([x, score])
+
+    # simplex iter
+    iters = 0
+    while 1:
+        # order
+        res.sort(key=lambda x: x[1])
+        best = res[0][1]
+
+        # break after max_iter
+        if max_iter and iters >= max_iter:
+            return res[0]
+        iters += 1
+
+        # break after no_improv_break iterations with no improvement
+        dprint('...best so far: ' + str(best))
+        dpprint(res[0])
+
+        if best < prev_best - no_improve_thr:
+            no_improv = 0
+            prev_best = best
+        else:
+            no_improv += 1
+
+        if no_improv >= no_improv_break:
+            return res[0]
+
+        # centroid
+        x0 = [0.] * dim
+        for tup in res[:-1]:
+            for i, c in enumerate(tup[0]):
+                x0[i] += c / (len(res)-1)
+
+        # reflection
+        xr = x0 + alpha*(x0 - res[-1][0])
+        rscore = f(xr)
+        if res[0][1] <= rscore < res[-2][1]:
+            del res[-1]
+            res.append([xr, rscore])
+            continue
+
+        # expansion
+        if rscore < res[0][1]:
+            xe = x0 + gamma*(x0 - res[-1][0])
+            escore = f(xe)
+            if escore < rscore:
+                del res[-1]
+                res.append([xe, escore])
+                continue
+            else:
+                del res[-1]
+                res.append([xr, rscore])
+                continue
+
+        # contraction
+        xc = x0 + rho*(x0 - res[-1][0])
+        cscore = f(xc)
+        if cscore < res[-1][1]:
+            del res[-1]
+            res.append([xc, cscore])
+            continue
+
+        # reduction
+        x1 = res[0][0]
+        nres = []
+        for tup in res:
+            redx = x1 + sigma*(tup[0] - x1)
+            score = f(redx)
+            nres.append([redx, score])
+        res = nres
+
+
+
+results = []
+    
+def f(x):
+    global results
+
+    parameters = np2par(x)
+
+    if parameters['ema_K']     > 0.99   or parameters['ema_K']     <= 0: return 1111.1
+    #if parameters['rsi_K']     > 0.99   or parameters['rsi_K']     <= 0: return 1111.1
+    if parameters['emamacd_K'] > 0.99   or parameters['emamacd_K'] <= 0: return 2222.2
+    if parameters['fast_K']    > 0.99   or parameters['fast_K']    <= 0: return 3333.3
+    if parameters['macd_K']    > 0.99   or parameters['macd_K']    <= 0: return 4444.4
+    if parameters['slow_K']    > 0.99   or parameters['slow_K']    <= 0: return 5555.5
+    if parameters['sma_length']> 100000 or parameters['sma_length']<= 5: return 6666.6
+
+    for (par,r) in results:
+        if par == parameters:
+            dprint( "Returned result from cache: " + str(r) )
+            return r
+
+
+    #dprint("Running trader with parameters:")
+    #dpprint(parameters)
+
+    broker = Broker()
+    trader = Trader(broker,parameters)
+    
+    datafile = open(TICKER_FILE,"r")
+    for line in datafile:
+
+        candle = {}
+        inpcandle = json.loads(line)
+
+        candle['T'] = int(inpcandle['T'])
+        for elem in {'c', 'o', 'h', 'l', 'v' }:
+            candle[elem] = float(inpcandle[elem])
+
+        trader.append( candle )
+
+    #result = -1 * broker.avgprofit * broker.ntrades
+    result = -1 * broker.mresult
+
+    dprint("Average        profit: " + str(round(broker.avgprofit,2)) + "% in " + str(broker.ntrades) + " trades" )
+    dprint("Multiplicative result: " + str(round(broker.mresult,2)) + "x in " + str(broker.ntrades) + " trades" )
+    dprint("Result               : " + str(result))
+
+    results.append((parameters, result))
+
+    return result
+    
+
+
+if __name__ == '__main__':
+
+    parameters = {
+                    #'rsi_K': 0.00016665277893508876,
+                    'ema_K': 0.0016652789342214821,
+                    'emamacd_K': 0.0036968576709796672,
+                    'fast_K': 0.001448225923244026,
+                    'macd_K': 0.0036968576709796672,
+                    'slow_K': 0.0012812299807815502,
+                    'sma_length': 12000
+                 }
+
+
+    #parameters = {   'ema_K': 0.06038605001415557,
+    #                 'ema_fac': 1.0192756888777887,
+    #                 'emamacd_K': 0.00639715577386981,
+    #                 'fast_K': 0.0003444088572024939,
+    #                 'mac_fac': 1.029750783392093,
+    #                 'macd_K': 0.01078497549921677,
+    #                 'offset': 0.12452596641099553,
+    #                 'slow_K': 0.00015492283801938668,
+    #                 'sma_fac': 1.0114543836194274,
+    #                 'sma_length': 127
+    # Average profit:17.87% in 4 trades on BTCUSDT_2021_1minutes_2.txt
+
+
+    dprint("Starting optimizer with parameters:")
+    dpprint(parameters)
+
+    nppars = par2np(parameters)
+    #pprint.pprint(nppars)
+
+    #pars = np2par(nppars)
+    #pprint.pprint(pars)
+
+    print(nelder_mead(f, nppars))
+   
+

@@ -27,7 +27,7 @@ class Ema(Indicator):
         else:
            self.K = K
 
-        print("Self.N:", self.N, "Self.K:", self.K)
+        # dprint("Self.N: " + str(self.N) + " Self.K: " + str(self.K))
 
     def append(self,timestamp,value):
         Indicator.append(self,timestamp,value)

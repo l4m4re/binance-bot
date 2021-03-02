@@ -6,7 +6,8 @@ from broker import *
 
 #TRADE_SYMBOL    = "THETAUSDT"
 TRADE_SYMBOL    = "BTCUSDT"
-TICKER_FILE     = "../data/BTCUSDT_2020_1minutes.txt"
+#TICKER_FILE     = "../data/BTCUSDT_2020_1minutes.txt"
+TICKER_FILE     = "../data/BTCUSDT_2021_1minutes.txt"
 TRADE_QUANTITY  = 10
 
 trader = None

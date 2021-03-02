@@ -43,9 +43,11 @@ class Indicator:
         if type(self.N) is tuple:  # Macd instance
             n = self.N[1]
 
-        # No need to grow big arrays
-        if len(self.times) > max(20, n):
-            self.popHead()
+        # No need to grow big arrays   -> expensive operation in terms
+        # of performance, relevant when optimizing.
+        # if len(self.times) > n:
+        #if len(self.times) > max(20, n+1):
+        #    self.popHead()
 
         self.times.append(timestamp)
         self.input.append(value)
