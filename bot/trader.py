@@ -14,14 +14,20 @@ from Macd import *
 class Trader:
     def __init__(self, broker,parameters=None):
 
-        len_fac         = 60
-        sma_length      = len_fac * 200
-        ema_length      = len_fac * 20
-        #rsi_length      = len_fac * 20
-        fast_length     = len_fac * 23 
-        slow_length     = len_fac * 26
-        macd_length     = len_fac * 9
-        emamacd_length  = len_fac * 9
+        len_fac         = 600
+        sma_len_fac     = 200
+        ema_len_fac     = 20
+        macd_len_fac    = 20
+        fast_multiplier = 23.0/20
+        slow_multiplier = 26.0/20
+        macd_multiplier = 9.0/20
+
+        sma_length      = int(round(len_fac * sma_len_fac))
+        ema_length      = int(round(len_fac * ema_len_fac))
+        fast_length     = int(round(len_fac * macd_len_fac * fast_multiplier))
+        slow_length     = int(round(len_fac * macd_len_fac * slow_multiplier))
+        macd_length     = int(round(len_fac * macd_len_fac * macd_multiplier))
+        emamacd_length  = macd_length
 
 
         #rsi_K           = (2.0 / (1+rsi_length))
@@ -31,10 +37,12 @@ class Trader:
         macd_K          = (2.0 / (1+macd_length))
         emamacd_K       = (2.0 / (1+emamacd_length))
 
-        self.sma_fac = 1.0
-        self.ema_fac = 1.0
-        self.mac_fac = 1.0
-        self.offset  = 0.0
+        #self.sma_fac = 1.0
+        #self.ema_fac = 1.0
+        #self.mac_fac = 1.0
+
+        self.oversold    = -0.13410494
+        self.overbought  =  0.12345679
 
         #self.rsi_overbought  = 70
         #self.rsi_oversold    = 30
@@ -60,14 +68,34 @@ class Trader:
 
         else:
             dprint("Trader started with  parameters:")
+
+            len_fac         = parameters['len_fac']
+            sma_len_fac     = parameters['sma_len_fac']
+            ema_len_fac     = parameters['ema_len_fac']
+            macd_len_fac    = parameters['macd_len_fac']
+            fast_multiplier = parameters['fast_multiplier']
+            slow_multiplier = parameters['slow_multiplier']
+            macd_multiplier = parameters['macd_multiplier']
+
+            self.overbought = parameters['overbought']
+            self.oversold   = parameters['oversold']
+
+            sma_length      = int(round(len_fac * sma_len_fac))
+            ema_length      = int(round(len_fac * ema_len_fac))
+            fast_length     = int(round(len_fac * macd_len_fac * fast_multiplier))
+            slow_length     = int(round(len_fac * macd_len_fac * slow_multiplier))
+            macd_length     = int(round(len_fac * macd_len_fac * macd_multiplier))
+            emamacd_length  = macd_length
+
+
              
+            '''
             sma_length     = parameters['sma_length']
             ema_K          = parameters['ema_K']
             fast_K         = parameters['fast_K']
             slow_K         = parameters['slow_K']
             macd_K         = parameters['macd_K']
             emamacd_K      = parameters['emamacd_K']
-            '''
             self.sma_fac   = parameters['sma_fac']
             self.ema_fac   = parameters['ema_fac']
             self.mac_fac   = parameters['mac_fac']
@@ -76,18 +104,6 @@ class Trader:
 
             dpprint(parameters)
 
-        dprint("lengths:")
-
-        ppar = {}
-        ppar['sma_length']     = sma_length
-        #ppar['rsi_length']     = 2.0/rsi_K - 1
-        ppar['ema_length']     = 2.0/ema_K - 1
-        ppar['fast_length']    = 2.0/fast_K - 1
-        ppar['slow_length']    = 2.0/slow_K - 1
-        ppar['macd_length']    = 2.0/macd_K - 1
-        ppar['emamacd_length'] = 2.0/emamacd_K - 1
-
-        dpprint(ppar)
  
 
         self.broker = broker
@@ -100,15 +116,32 @@ class Trader:
         #self.rsi = Rsi(rsi_length,rsi_K)
 
         # EMA Indicator - Are we in a rally or not?
-        self.ema = Ema(ema_length,ema_K)
+        #self.ema = Ema(ema_length,ema_K)
+        self.ema = Ema(ema_length)
 
         # MACD Indicator - Is the MACD bullish or bearish?
         # MACD = ema(close, fastLength) - ema(close, slowlength)
-        self.macd    = Macd( (fast_length,slow_length,macd_length), (fast_K,slow_K,macd_K) )
+        #self.macd    = Macd( (fast_length,slow_length,macd_length), (fast_K,slow_K,macd_K) )
+        self.macd    = Macd( (fast_length,slow_length,macd_length) )
 
         # emaMACD = ema(MACD, MACDLength)
         #self.emamacd = EmaMacd(MACD_LENGTH)
-        self.emamacd = Ema(emamacd_length,emamacd_K)
+        #self.emamacd = Ema(emamacd_length,emamacd_K)
+        self.emamacd = Ema(emamacd_length)
+
+        dprint("Current actual parameters:")
+        ppar = {}
+        ppar['sma_length']     = self.sma.N
+        ppar['overbought']     = self.overbought
+        ppar['oversold']       = self.oversold
+        #ppar['rsi_length']     = round(2.0/rsi_K)
+        ppar['ema_length']     = self.ema.N
+        ppar['fast_length']    = self.macd.N[0]
+        ppar['slow_length']    = self.macd.N[1]
+        ppar['macd_length']    = self.macd.N[2]
+        ppar['emamacd_length'] = self.emamacd.N
+
+        dpprint(ppar)
 
     def append(self, candle):
         # check if valid input
@@ -186,10 +219,10 @@ class Trader:
 
         if cur_close > cur_sma:
             #buy_entry = delta>0 and cur_rsi>self.rsi_overbought
-            buy_entry = delta>0 
+            buy_entry = delta>self.overbought
         else:
             #buy_entry = delta>0 and cur_close>cur_ema and cur_rsi>self.rsi_overbought
-            buy_entry = delta>0 and cur_close>cur_ema
+            buy_entry = delta>self.overbought and cur_close>cur_ema
 
         if buy_entry and not self.broker.in_position:
             self.broker.buyBuyBuy(cur_close - cur_sma, cur_close) # ToDo - pass sensible value)
@@ -197,10 +230,10 @@ class Trader:
 
         if cur_close < cur_sma:
             #sell_entry = delta<0 and cur_rsi<self.rsi_oversold
-            sell_entry = delta<0
+            sell_entry = delta<self.oversold
         else:
             #sell_entry = delta<0 and cur_close<cur_ema and cur_rsi<self.rsi_oversold
-            sell_entry = delta<0 and cur_close<cur_ema
+            sell_entry = delta<self.oversold and cur_close<cur_ema
 
         if sell_entry and self.broker.in_position:
             self.broker.sellSellSell(cur_sma-cur_close, cur_close) # ToDo - pass sensible value)

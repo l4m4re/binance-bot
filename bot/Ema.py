@@ -26,6 +26,7 @@ class Ema(Indicator):
            self.K = (2.0 / (1+self.N)) 
         else:
            self.K = K
+           self.N = round(2.0/self.K) 
 
         # dprint("Self.N: " + str(self.N) + " Self.K: " + str(self.K))
 

@@ -6,19 +6,32 @@ from trader import *
 from broker import *
 from utils import *
 import copy
+import math
 
 #TRADE_SYMBOL    = "THETAUSDT"
 TRADE_SYMBOL    = "BTCUSDT"
-TICKER_FILE     = "../data/BTCUSDT_2020_1minutes.txt"
+#TICKER_FILE     = "../data/BTCUSDT_2020_1minutes.txt"
 #TICKER_FILE     = "../data/BTCUSDT_2021_1minutes_2.txt"
-#TICKER_FILE     = "../data/BTCUSDT_2018-2020.txt"
+TICKER_FILE     = "../data/BTCUSDT_2018-2020.txt"
 TRADE_QUANTITY  = 10
 
 trader = None
 broker = None
 
+
 def par2np(par):
     return np.array([
+        math.log(par['len_fac'])/math.log(10),
+        math.log(par['sma_len_fac'])/math.log(10),
+        math.log(par['ema_len_fac'])/math.log(10),
+        math.log(par['macd_len_fac'])/math.log(10),
+        par['fast_multiplier'],
+        par['slow_multiplier'],
+        par['macd_multiplier'],
+        par['overbought'],
+        par['oversold']
+    ]) 
+    '''
         par['sma_length']/1000,
         #par['rsi_K']*100.0,
         par['ema_K']*100.0,
@@ -26,8 +39,6 @@ def par2np(par):
         par['slow_K']*100.0,
         par['macd_K']*100.0,
         par['emamacd_K']*100.0,
-    ]) 
-    '''
         par['sma_fac'],
         par['ema_fac'],
         par['mac_fac'],
@@ -36,6 +47,17 @@ def par2np(par):
 
 def np2par(np):
     par = {}
+    par['len_fac']         = math.pow(10,np[0])
+    par['sma_len_fac']     = math.pow(10,np[1])
+    par['ema_len_fac']     = math.pow(10,np[2])
+    par['macd_len_fac']    = math.pow(10,np[3])
+    par['fast_multiplier'] = np[4]
+    par['slow_multiplier'] = np[5]
+    par['macd_multiplier'] = np[6]
+    par['overbought']      = np[7]
+    par['oversold']        = np[8]
+
+    '''
     par['sma_length'] = int( (np[0] * 1000) + 0.5 )
     #par['rsi_K']      = np[1]/100.0
     par['ema_K']      = np[1]/100.0
@@ -43,7 +65,6 @@ def np2par(np):
     par['slow_K']     = np[3]/100.0
     par['macd_K']     = np[4]/100.0
     par['emamacd_K']  = np[5]/100.0
-    '''
     par['sma_fac']    = np[7]
     par['ema_fac']    = np[8]
     par['mac_fac']    = np[9]
@@ -60,8 +81,8 @@ def np2par(np):
 '''
 # source: https://github.com/fchollet/nelder-mead
 def nelder_mead(f, x_start,
-                step=0.1, no_improve_thr=10e-6,
-                no_improv_break=10, max_iter=0,
+                step=0.1, no_improve_thr=10e-14,
+                no_improv_break=60, max_iter=0,
                 alpha=1., gamma=2., rho=-0.5, sigma=0.5):
     '''
         @param f (function): function to optimize, must return a scalar score
@@ -162,12 +183,15 @@ def nelder_mead(f, x_start,
 
 
 results = []
+
+count = 0
     
 def f(x):
     global results
+    global count
 
     parameters = np2par(x)
-
+    '''
     if parameters['ema_K']     > 0.99   or parameters['ema_K']     <= 0: return 1111.1
     #if parameters['rsi_K']     > 0.99   or parameters['rsi_K']     <= 0: return 1111.1
     if parameters['emamacd_K'] > 0.99   or parameters['emamacd_K'] <= 0: return 2222.2
@@ -175,11 +199,28 @@ def f(x):
     if parameters['macd_K']    > 0.99   or parameters['macd_K']    <= 0: return 4444.4
     if parameters['slow_K']    > 0.99   or parameters['slow_K']    <= 0: return 5555.5
     if parameters['sma_length']> 100000 or parameters['sma_length']<= 5: return 6666.6
+    '''
+
+    '''
+    if parameters['len_fac']          <= 0: return 1111.1
+    if parameters['sma_len_fac']      <= 0: return 1111.1
+    if parameters['ema_len_fac']      <= 0: return 1111.1
+    '''
+    if parameters['fast_multiplier']  <= 0: return 1111.1
+    if parameters['slow_multiplier']  <= 0: return 1111.1
+    if parameters['macd_multiplier']  <= 0: return 1111.1
+ 
+    # ToDo: Check actual length, b/c these can become equal because of
+    # rounding
+    if parameters['slow_multiplier']  <= parameters['fast_multiplier']: return 1111.1
+
 
     for (par,r) in results:
         if par == parameters:
             dprint( "Returned result from cache: " + str(r) )
             return r
+
+    count = count + 1
 
 
     #dprint("Running trader with parameters:")
@@ -203,6 +244,7 @@ def f(x):
     #result = -1 * broker.avgprofit * broker.ntrades
     result = -1 * broker.mresult
 
+    dprint("Run nr.              : " + str(count))
     dprint("Average        profit: " + str(round(broker.avgprofit,2)) + "% in " + str(broker.ntrades) + " trades" )
     dprint("Multiplicative result: " + str(round(broker.mresult,2)) + "x in " + str(broker.ntrades) + " trades" )
     dprint("Result               : " + str(result))
@@ -215,15 +257,24 @@ def f(x):
 
 if __name__ == '__main__':
 
-    parameters = {
-                    #'rsi_K': 0.00016665277893508876,
-                    'ema_K': 0.0016652789342214821,
-                    'emamacd_K': 0.0036968576709796672,
-                    'fast_K': 0.001448225923244026,
-                    'macd_K': 0.0036968576709796672,
-                    'slow_K': 0.0012812299807815502,
-                    'sma_length': 12000
-                 }
+    parameters = { 'len_fac'         : 60,
+                   'sma_len_fac'     : 200, 
+                   'ema_len_fac'     : 30, 
+                   'macd_len_fac'    : 30, 
+                   'fast_multiplier' : 1.15,
+                   'slow_multiplier' : 1.4,
+                   'macd_multiplier' : 0.45,
+                   'oversold'        : -0.1341,
+                   'overbought'      : 0.1234 }
+    #parameters = {
+    #                #'rsi_K': 0.00016665277893508876,
+    #                'ema_K': 0.0016652789342214821,
+    #                'emamacd_K': 0.0036968576709796672,
+    #                'fast_K': 0.001448225923244026,
+    #                'macd_K': 0.0036968576709796672,
+    #                'slow_K': 0.0012812299807815502,
+    #                'sma_length': 12000
+    #             }
 
 
     #parameters = {   'ema_K': 0.06038605001415557,
@@ -238,6 +289,33 @@ if __name__ == '__main__':
     #                 'sma_length': 127
     # Average profit:17.87% in 4 trades on BTCUSDT_2021_1minutes_2.txt
 
+
+    '''
+    INFO:root:2021-03-03 01:18:30.410768: Run nr.              : 212
+    INFO:root:2021-03-03 01:18:30.412376: Average        profit: 1.1% in 208 trades
+    INFO:root:2021-03-03 01:18:30.412776: Multiplicative result: 2.89x in 208 trades
+    INFO:root:2021-03-03 01:18:30.413280: Result               : -2.8876642094057097
+    INFO:root:2021-03-03 01:18:31.329094: Trader started with  parameters:
+    INFO:root:2021-03-03 01:18:31.329476: {'ema_K': 0.0023472325013832174,
+     'emamacd_K': 0.002662756676950587,
+     'fast_K': 0.0014130751290235676,
+     'macd_K': 0.004308626575991549,
+     'slow_K': 0.0008633103738817601,
+     'sma_length': 12056}
+    '''
+
+    ''' 
+    dprint("Starting loop:")
+
+    len_fac = 22
+    for loop in range(1,10):
+        parameters['len_fac'] = len_fac
+        len_fac = len_fac * 2
+        nppars = par2np(parameters)
+        dpprint(parameters)
+        print( f(nppars) )
+    '''
+        
 
     dprint("Starting optimizer with parameters:")
     dpprint(parameters)

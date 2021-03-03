@@ -15,7 +15,9 @@ class Macd(Indicator):
         self.s_ema    = Ema(N[0], K[0])
         self.l_ema    = Ema(N[1], K[1])
         self.ema_macd = EmaMacd(N[2],K[2])
-        
+
+        self.N = (self.s_ema.N, self.l_ema.N, self.ema_macd.N)
+
     def append(self, timestamp, value):
         Indicator.append(self,timestamp,value)
 
@@ -23,7 +25,7 @@ class Macd(Indicator):
         self.l_ema.append(timestamp, value)
         
         outputvalue = None
-        if len(self.input) >= self.N[1]:
+        if len(self.input) >= max(self.N):
             try:    
                 outputvalue = self.s_ema[-1] - self.l_ema[-1]
             except:
@@ -108,7 +110,7 @@ if __name__=='__main__':
     print(ind)
 
 
-    ind = Macd((3,6,3),(0.1,0.2,0.3))
+    ind = Macd((3,6,3),(0.4,0.2,0.4))
     for i in input:
         ind.appendCandle(i)
     print(ind)

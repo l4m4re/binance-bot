@@ -92,7 +92,7 @@ class Broker:
 
                 self.mresult = 1.0
                 for r in self.results:
-                   self.mresult = r * self.mresult * 0.995 # calculate 0.5% fee
+                   self.mresult = r * self.mresult * 0.998 # calculate 2 x 0.1% fee costs
 
                 self.ntrades = len(self.profits)
 
