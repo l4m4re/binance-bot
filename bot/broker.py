@@ -1,6 +1,6 @@
 import websocket, json, pprint, talib, numpy
 import config
-import sys, time, os
+import sys, time, os, math
 from binance.client import Client
 from binance.enums import *
 from utils import *
@@ -15,17 +15,17 @@ TRADE_QUANTITY  = 10
 class Broker:
     def __init__(self):
         self.live            = False
-        self.in_position     = False
+        self.begincash       = 300.0
+        self.cash            = self.begincash
+        self.cryptoamount    = 0.0
+        self.avgprice        = 0.0
+        self.fee             = 0.001
+        self.profit          = 0.0
 
         self.print_obos      = False
 
         self.cur_close       = 0.0
-        self.last_buy        = 0.0
-        self.avgprofit       = 0.0
-        self.mresult         = 0.0
         self.ntrades         = 0
-        self.profits         = []
-        self.results         = []
         self.date_time       = 0
 
     def goLive(self):
@@ -55,51 +55,79 @@ class Broker:
             return False
 
         return True
+  
+    def getOrderAmount(self, amount):
+    # DGB - ordered 16000, obtained 15984
+    # 15984.0/16000 = 0.999
+
+        minimum   = 0.0001  
+        increment = 0.00001
+
+        if amount < minimum: return 0.0
+
+        n_increments = math.floor( (amount / increment) * (1 - self.fee) )
+        amount       = n_increments * increment
+
+        if amount < minimum: return 0.0
+
+        return amount
 
 
-    def buyBuyBuy(self, amount, price):
 
-        if self.in_position:
-            if self.print_obos:
-                print(timestamp2str(self.date_time), "It is oversold at", price, " but you already own it, nothing to do.")
-        else:
-            #print("Oversold! Buy! Buy! Buy!")
-            # put binance buy order logic here
-            order_succeeded = self.order(SIDE_BUY, TRADE_QUANTITY, TRADE_SYMBOL, price)
-            if order_succeeded:
-                self.last_buy = price
-                self.in_position = True
+    def buyBuyBuy(self, fraction, price):
+
+        #print( "buy", fraction, price)
+
+        avcash = self.cash * (1-self.fee)
+
+        n2buy = self.getOrderAmount( (avcash/price) * fraction )
+
+        if n2buy <= 0: return
+
+        # put binance buy order logic here
+        order_succeeded = self.order(SIDE_BUY, n2buy, TRADE_SYMBOL, price)
+
+        if order_succeeded:
+            tot_price = self.cryptoamount * self.avgprice
+            buy_price = n2buy*price*(1+self.fee) 
+
+            self.cryptoamount = self.cryptoamount + n2buy
+            self.cash = self.cash - buy_price
+            print( "crypto: ", self.cryptoamount, "cash: ", self.cash)
+
+            tot_price = tot_price + buy_price
+
+            self.avgprice = tot_price/self.cryptoamount
 
 
-    def sellSellSell(self, amount, price):
+    def sellSellSell(self, fraction, price):
+        #print( "sell", fraction, price)
 
-        if self.in_position:
-            #print("Overbought! Sell! Sell! Sell!")
-            # put binance sell logic here
-            order_succeeded = self.order(SIDE_SELL, TRADE_QUANTITY, TRADE_SYMBOL, price)
-            if order_succeeded:
-                self.in_position = False
-                self.last_sell = price
-                profit = 100*(self.last_sell-self.last_buy)/self.last_buy
-                print( "Profit              : {0:.3f}%".format(profit) )
-                self.profits.append(profit)
+        avcoins = self.cryptoamount * (1-self.fee)
 
-                result = self.last_sell/self.last_buy
-                print( "Result              : {0:.3f}".format(result) )
-                self.results.append(result)
+        n2sell = self.getOrderAmount( avcoins * fraction )
 
-                self.avgprofit = calc_average(self.profits)
+        if n2sell <= 0: return
 
-                self.mresult = 1.0
-                for r in self.results:
-                   self.mresult = r * self.mresult * 0.998 # calculate 2 x 0.1% fee costs
+        # put binance sell logic here
+        order_succeeded = self.order(SIDE_SELL, n2sell, TRADE_SYMBOL, price)
 
-                self.ntrades = len(self.profits)
+        if order_succeeded:
+            tot_price = self.cryptoamount * self.avgprice
+            sell_price = n2sell*price*(1-self.fee) 
 
-                print( "Average profit       : {0:.2f}% in".format(self.avgprofit), self.ntrades, "trades." )
-                print( "Multiplicative result: {0:.2f}x in".format(self.mresult), self.ntrades, "trades." )
+            self.cryptoamount = self.cryptoamount - n2sell
+            self.cash = self.cash + sell_price
+            print( "crypto: ", self.cryptoamount, "cash: ", self.cash)
 
-        else:
-            if self.print_obos:
-                print(timestamp2str(date_time), "It is overbought at", cur_close, "  but we don't own any. Nothing to do.")
+            tot_price = tot_price - sell_price
+
+            self.avgprice = tot_price/self.cryptoamount
+
+
+            self.profit = 100*(self.cash-self.begincash)/self.begincash
+            self.ntrades = self.ntrades + 1
+
+            print( "Total profit : {0:.3f}% in".format(self.profit), self.ntrades, "trades." )
+
 

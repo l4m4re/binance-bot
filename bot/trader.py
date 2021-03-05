@@ -1,11 +1,11 @@
 import websocket, json, pprint, talib, numpy
 import config
-import sys, time, os
+import sys, time, os, math
 from binance.client import Client
 from binance.enums import *
 from utils import *
 from Sma  import *
-#from Rsi  import *
+from Rsi  import *
 from Ema  import *
 from Macd import *
 
@@ -14,8 +14,9 @@ from Macd import *
 class Trader:
     def __init__(self, broker,parameters=None):
 
-        len_fac         = 600
+        len_fac         = 60
         sma_len_fac     = 200
+        rsi_len_fac     = 20
         ema_len_fac     = 20
         macd_len_fac    = 20
         fast_multiplier = 23.0/20
@@ -23,29 +24,30 @@ class Trader:
         macd_multiplier = 9.0/20
 
         sma_length      = int(round(len_fac * sma_len_fac))
+        rsi_length      = int(round(len_fac * rsi_len_fac))
         ema_length      = int(round(len_fac * ema_len_fac))
         fast_length     = int(round(len_fac * macd_len_fac * fast_multiplier))
         slow_length     = int(round(len_fac * macd_len_fac * slow_multiplier))
         macd_length     = int(round(len_fac * macd_len_fac * macd_multiplier))
         emamacd_length  = macd_length
 
-
-        #rsi_K           = (2.0 / (1+rsi_length))
+        rsi_K           = (2.0 / (1+rsi_length))
         ema_K           = (2.0 / (1+ema_length))
         fast_K          = (2.0 / (1+fast_length))
         slow_K          = (2.0 / (1+slow_length))
         macd_K          = (2.0 / (1+macd_length))
         emamacd_K       = (2.0 / (1+emamacd_length))
 
-        #self.sma_fac = 1.0
-        #self.ema_fac = 1.0
-        #self.mac_fac = 1.0
+        self.sma_fac    = 1.0
+        self.rsi_fac    = 0.01 
+        self.ema_fac    = 1.0
+        self.mac_fac    = 1.0
+        self.offset     = 0.0
 
-        self.oversold    = -0.13410494
-        self.overbought  =  0.12345679
+        self.oversold   = -0.13410494
+        self.overbought =  0.12345679
 
-        #self.rsi_overbought  = 70
-        #self.rsi_oversold    = 30
+        self.cur_close  = 0.0
 
         if parameters is None:
             dprint("Trader started with default parameters:")
@@ -71,16 +73,24 @@ class Trader:
 
             len_fac         = parameters['len_fac']
             sma_len_fac     = parameters['sma_len_fac']
+            rsi_len_fac     = parameters['rsi_len_fac']
             ema_len_fac     = parameters['ema_len_fac']
             macd_len_fac    = parameters['macd_len_fac']
             fast_multiplier = parameters['fast_multiplier']
             slow_multiplier = parameters['slow_multiplier']
             macd_multiplier = parameters['macd_multiplier']
 
+            self.sma_fac    = parameters['sma_fac']
+            self.rsi_fac    = parameters['rsi_fac']
+            self.ema_fac    = parameters['ema_fac']
+            self.mac_fac    = parameters['mac_fac']
+            self.offset     = parameters['offset']
+
             self.overbought = parameters['overbought']
             self.oversold   = parameters['oversold']
 
             sma_length      = int(round(len_fac * sma_len_fac))
+            rsi_length      = int(round(len_fac * rsi_len_fac))
             ema_length      = int(round(len_fac * ema_len_fac))
             fast_length     = int(round(len_fac * macd_len_fac * fast_multiplier))
             slow_length     = int(round(len_fac * macd_len_fac * slow_multiplier))
@@ -88,7 +98,6 @@ class Trader:
             emamacd_length  = macd_length
 
 
-             
             '''
             sma_length     = parameters['sma_length']
             ema_K          = parameters['ema_K']
@@ -97,6 +106,7 @@ class Trader:
             macd_K         = parameters['macd_K']
             emamacd_K      = parameters['emamacd_K']
             self.sma_fac   = parameters['sma_fac']
+            self.rsi_fac   = parameters['rsi_fac']
             self.ema_fac   = parameters['ema_fac']
             self.mac_fac   = parameters['mac_fac']
             self.offset    = parameters['offset']
@@ -114,6 +124,7 @@ class Trader:
 
         # RSI Indicator
         #self.rsi = Rsi(rsi_length,rsi_K)
+        self.rsi = Rsi(rsi_length)
 
         # EMA Indicator - Are we in a rally or not?
         #self.ema = Ema(ema_length,ema_K)
@@ -132,14 +143,14 @@ class Trader:
         dprint("Current actual parameters:")
         ppar = {}
         ppar['sma_length']     = self.sma.N
-        ppar['overbought']     = self.overbought
-        ppar['oversold']       = self.oversold
-        #ppar['rsi_length']     = round(2.0/rsi_K)
+        ppar['rsi_length']     = self.rsi.N
         ppar['ema_length']     = self.ema.N
         ppar['fast_length']    = self.macd.N[0]
         ppar['slow_length']    = self.macd.N[1]
         ppar['macd_length']    = self.macd.N[2]
         ppar['emamacd_length'] = self.emamacd.N
+        ppar['overbought']     = self.overbought
+        ppar['oversold']       = self.oversold
 
         dpprint(ppar)
 
@@ -166,7 +177,7 @@ class Trader:
         cur_sma = self.sma.appendCandle(candle)
         #print("the current sma is {}".format(cur_sma))
 
-        #cur_rsi = self.rsi.appendCandle(candle)
+        cur_rsi = self.rsi.appendCandle(candle)
         #print("the current rsi is {}".format(cur_rsi))
 
         cur_ema = self.ema.appendCandle(candle)   
@@ -189,12 +200,12 @@ class Trader:
             delta = cur_macd - cur_emamacd
         #print("the current delta is {}".format(delta))
 
-        cur_close = candle['c']
+        self.cur_close = candle['c']
 
         if cur_sma == None:
             return
 
-        if cur_close == None:
+        if self.cur_close == None:
             return
 
         if cur_ema == None:
@@ -217,6 +228,7 @@ class Trader:
         # // Set Buy/Sell conditions
         # 
 
+        '''
         if cur_close > cur_sma:
             #buy_entry = delta>0 and cur_rsi>self.rsi_overbought
             buy_entry = delta>self.overbought
@@ -238,30 +250,36 @@ class Trader:
         if sell_entry and self.broker.in_position:
             self.broker.sellSellSell(cur_sma-cur_close, cur_close) # ToDo - pass sensible value)
             #print("Current RSI: ",cur_rsi )
-
-
         '''
+
         # ToDo : linear combination
-        rel2sma = cur_close/cur_sma - 1
+        rel2sma = self.cur_close/cur_sma - 1
         #print("the current rel2sma is {}".format(rel2sma))
 
-        rel2ema = cur_close/cur_ema - 1 
+        rel2ema = self.cur_close/cur_ema - 1 
         #print("the current rel2ema is {}".format(rel2ema))
 
         relmacd = cur_macd/cur_emamacd - 1
         #print("the current relmacd is {}".format(relmacd))
 
 
-        indicator = self.sma_fac*rel2sma + self.ema_fac*rel2ema + self.mac_fac*relmacd + self.offset
+        indicator_ = self.sma_fac*rel2sma + self.ema_fac*rel2ema + self.mac_fac*relmacd + self.rsi_fac*cur_rsi + self.offset
         #print("the current signal is {}".format(signal))
 
-        if indicator > 0.5:
-            self.broker.buyBuyBuy(cur_close - cur_sma, cur_close) # ToDo - pass sensible value)
+        if indicator_ < -100: indicator_ = -100
+        if indicator_ >  100: indicator_ =  100
 
-        elif indicator < -0.5:
-            self.broker.sellSellSell(cur_sma-cur_close, cur_close) # ToDo - pass sensible value)
-        '''
+        indicator = 2/(1+math.exp(-indicator_)) - 1 
 
+        if indicator > self.overbought:
+            amount = (indicator - self.overbought)/self.overbought
+            if amount > 1: amount = 1
+            self.broker.buyBuyBuy(amount, self.cur_close) # ToDo - pass sensible value)
+
+        elif indicator < self.oversold:
+            amount = (indicator - self.oversold)/self.oversold
+            if amount > 1: amount = 1
+            self.broker.sellSellSell(amount, self.cur_close) # ToDo - pass sensible value)
 
     def validateInput(self, candle):
         if type(candle) is not dict:

@@ -23,53 +23,39 @@ def par2np(par):
     return np.array([
         math.log(par['len_fac'])/math.log(10),
         math.log(par['sma_len_fac'])/math.log(10),
+        math.log(par['rsi_len_fac'])/math.log(10),
         math.log(par['ema_len_fac'])/math.log(10),
         math.log(par['macd_len_fac'])/math.log(10),
         par['fast_multiplier'],
         par['slow_multiplier'],
         par['macd_multiplier'],
+        par['sma_fac'],
+        par['rsi_fac'],
+        par['ema_fac'],
+        par['mac_fac'],
+        par['offset'],
         par['overbought'],
         par['oversold']
     ]) 
-    '''
-        par['sma_length']/1000,
-        #par['rsi_K']*100.0,
-        par['ema_K']*100.0,
-        par['fast_K']*100.0,
-        par['slow_K']*100.0,
-        par['macd_K']*100.0,
-        par['emamacd_K']*100.0,
-        par['sma_fac'],
-        par['ema_fac'],
-        par['mac_fac'],
-        par['offset'] 
-    '''
 
 def np2par(np):
     par = {}
+
     par['len_fac']         = math.pow(10,np[0])
     par['sma_len_fac']     = math.pow(10,np[1])
-    par['ema_len_fac']     = math.pow(10,np[2])
-    par['macd_len_fac']    = math.pow(10,np[3])
-    par['fast_multiplier'] = np[4]
-    par['slow_multiplier'] = np[5]
-    par['macd_multiplier'] = np[6]
-    par['overbought']      = np[7]
-    par['oversold']        = np[8]
-
-    '''
-    par['sma_length'] = int( (np[0] * 1000) + 0.5 )
-    #par['rsi_K']      = np[1]/100.0
-    par['ema_K']      = np[1]/100.0
-    par['fast_K']     = np[2]/100.0
-    par['slow_K']     = np[3]/100.0
-    par['macd_K']     = np[4]/100.0
-    par['emamacd_K']  = np[5]/100.0
-    par['sma_fac']    = np[7]
-    par['ema_fac']    = np[8]
-    par['mac_fac']    = np[9]
-    par['offset']     = np[10]
-    '''
+    par['rsi_len_fac']     = math.pow(10,np[2])
+    par['ema_len_fac']     = math.pow(10,np[3])
+    par['macd_len_fac']    = math.pow(10,np[4])
+    par['fast_multiplier'] = np[5]
+    par['slow_multiplier'] = np[6]
+    par['macd_multiplier'] = np[7]
+    par['sma_fac']         = np[8]
+    par['rsi_fac']         = np[9]
+    par['ema_fac']         = np[10]
+    par['mac_fac']         = np[11]
+    par['offset']          = np[12]
+    par['overbought']      = np[13]
+    par['oversold']        = np[14]
 
     return par
 
@@ -242,12 +228,12 @@ def f(x):
         trader.append( candle )
 
     #result = -1 * broker.avgprofit * broker.ntrades
-    result = -1 * broker.mresult
+    profit = 100*(broker.cash + broker.cur_close*broker.cryptoamount - broker.begincash)/broker.begincash
+    result = -1*profit
 
-    dprint("Run nr.              : " + str(count))
-    dprint("Average        profit: " + str(round(broker.avgprofit,2)) + "% in " + str(broker.ntrades) + " trades" )
-    dprint("Multiplicative result: " + str(round(broker.mresult,2)) + "x in " + str(broker.ntrades) + " trades" )
-    dprint("Result               : " + str(result))
+    dprint("Run nr. : " + str(count))
+    dprint("Profit  : " + str(round(profit,2)) + "% in " + str(broker.ntrades) + " trades" )
+    dprint("Result  : " + str(result))
 
     results.append((parameters, result))
 
@@ -257,15 +243,40 @@ def f(x):
 
 if __name__ == '__main__':
 
+    parameters =    {'ema_fac': 1.0234485588458724,
+                     'ema_len_fac': 30.83484854787976,
+                     'fast_multiplier': 1.159825067778275,
+                     'len_fac': 58.212532212803,
+                     'mac_fac': 1.0147171438927323,
+                     'macd_len_fac': 31.250135889630656,
+                     'macd_multiplier': 0.46899646328102557,
+                     'offset': 0.014000232992524507,
+                     'overbought': 0.4950461159523033,
+                     'oversold': -0.5531968640287235,
+                     'rsi_fac': -0.018568979316385556,
+                     'rsi_len_fac': 31.29746722530215,
+                     'slow_multiplier': 1.4159262079687578,
+                     'sma_fac': 1.0218760496716448,
+                     'sma_len_fac': 207.9272656645609}
+
+    '''
     parameters = { 'len_fac'         : 60,
                    'sma_len_fac'     : 200, 
                    'ema_len_fac'     : 30, 
+                   'rsi_len_fac'     : 30, 
                    'macd_len_fac'    : 30, 
                    'fast_multiplier' : 1.15,
                    'slow_multiplier' : 1.4,
                    'macd_multiplier' : 0.45,
-                   'oversold'        : -0.1341,
-                   'overbought'      : 0.1234 }
+                   'sma_fac'         : 1.0,
+                   'rsi_fac'         : 0.01,
+                   'ema_fac'         : 1.0, 
+                   'mac_fac'         : 1.0,
+                   'offset'          : 0.0,
+                   'oversold'        : -0.5,
+                   'overbought'      : 0.5 }
+    '''
+
     #parameters = {
     #                #'rsi_K': 0.00016665277893508876,
     #                'ema_K': 0.0016652789342214821,
