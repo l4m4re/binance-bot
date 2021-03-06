@@ -43,9 +43,11 @@ class Trader:
         self.ema_fac    = 1.0
         self.mac_fac    = 1.0
         self.offset     = 0.0
+        self.am_fac     = 10.0
+        self.am_offset  = 0.0
 
-        self.oversold   = -0.13410494
-        self.overbought =  0.12345679
+        #self.oversold   = -0.13410494
+        #self.overbought =  0.12345679
 
         self.cur_close  = 0.0
 
@@ -85,9 +87,12 @@ class Trader:
             self.ema_fac    = parameters['ema_fac']
             self.mac_fac    = parameters['mac_fac']
             self.offset     = parameters['offset']
+            self.am_fac     = parameters['am_fac']
+            self.am_offset  = parameters['am_offset']
 
-            self.overbought = parameters['overbought']
-            self.oversold   = parameters['oversold']
+
+            #self.overbought = parameters['overbought']
+            #self.oversold   = parameters['oversold']
 
             sma_length      = int(round(len_fac * sma_len_fac))
             rsi_length      = int(round(len_fac * rsi_len_fac))
@@ -149,8 +154,8 @@ class Trader:
         ppar['slow_length']    = self.macd.N[1]
         ppar['macd_length']    = self.macd.N[2]
         ppar['emamacd_length'] = self.emamacd.N
-        ppar['overbought']     = self.overbought
-        ppar['oversold']       = self.oversold
+        #ppar['overbought']     = self.overbought
+        #ppar['oversold']       = self.oversold
 
         dpprint(ppar)
 
@@ -271,14 +276,23 @@ class Trader:
 
         indicator = 2/(1+math.exp(-indicator_)) - 1 
 
-        if indicator > self.overbought:
-            amount = (indicator - self.overbought)/self.overbought
-            if amount > 1: amount = 1
+        if indicator > 0.5:
+            #amount = (indicator - self.overbought)/self.overbought
+            #if amount > 1: amount = 1
+
+            amount = 1/(1+math.exp(-(indicator*self.am_fac+self.am_offset)))
+            if amount > 0.9: amount = 1.0
+            if amount < 0.1: amount = 0.0
+
             self.broker.buyBuyBuy(amount, self.cur_close) # ToDo - pass sensible value)
 
-        elif indicator < self.oversold:
-            amount = (indicator - self.oversold)/self.oversold
-            if amount > 1: amount = 1
+        elif indicator < -0.5:
+
+            amount = 1/(1+math.exp(-(abs(indicator)*self.am_fac+self.am_offset)))
+
+            if amount > 0.9: amount = 1.0
+            if amount < 0.1: amount = 0.0
+
             self.broker.sellSellSell(amount, self.cur_close) # ToDo - pass sensible value)
 
     def validateInput(self, candle):

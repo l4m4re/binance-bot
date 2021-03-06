@@ -34,8 +34,8 @@ def par2np(par):
         par['ema_fac'],
         par['mac_fac'],
         par['offset'],
-        par['overbought'],
-        par['oversold']
+        par['am_fac'],
+        par['am_offset'],
     ]) 
 
 def np2par(np):
@@ -54,8 +54,8 @@ def np2par(np):
     par['ema_fac']         = np[10]
     par['mac_fac']         = np[11]
     par['offset']          = np[12]
-    par['overbought']      = np[13]
-    par['oversold']        = np[14]
+    par['am_fac']          = np[13]
+    par['am_offset']       = np[14]
 
     return par
 
@@ -66,10 +66,15 @@ def np2par(np):
     Reference: https://en.wikipedia.org/wiki/Nelder%E2%80%93Mead_method
 '''
 # source: https://github.com/fchollet/nelder-mead
+
+# Changed Changed expansion & contraction to be consistent with wiki
+# along: https://github.com/yw5aj/nelder-mead
+# Changed default for rho from -0.5 to 0.5 to be consistent with wiki
+
 def nelder_mead(f, x_start,
                 step=0.1, no_improve_thr=10e-14,
                 no_improv_break=60, max_iter=0,
-                alpha=1., gamma=2., rho=-0.5, sigma=0.5):
+                alpha=1., gamma=2., rho=0.5, sigma=0.5):
     '''
         @param f (function): function to optimize, must return a scalar score
             and operate over a numpy array of the same dimensions as x_start
@@ -138,7 +143,8 @@ def nelder_mead(f, x_start,
 
         # expansion
         if rscore < res[0][1]:
-            xe = x0 + gamma*(x0 - res[-1][0])
+            #xe = x0 + gamma*(x0 - res[-1][0])
+            xe = x0 + gamma*(xr - x0)
             escore = f(xe)
             if escore < rscore:
                 del res[-1]
@@ -150,7 +156,8 @@ def nelder_mead(f, x_start,
                 continue
 
         # contraction
-        xc = x0 + rho*(x0 - res[-1][0])
+        #xc = x0 + rho*(x0 - res[-1][0])
+        xc = x0 + rho*(res[-1][0] - x0)
         cscore = f(xc)
         if cscore < res[-1][1]:
             del res[-1]
@@ -243,21 +250,25 @@ def f(x):
 
 if __name__ == '__main__':
 
-    parameters =    {'ema_fac': 1.0234485588458724,
-                     'ema_len_fac': 30.83484854787976,
-                     'fast_multiplier': 1.159825067778275,
-                     'len_fac': 58.212532212803,
-                     'mac_fac': 1.0147171438927323,
-                     'macd_len_fac': 31.250135889630656,
-                     'macd_multiplier': 0.46899646328102557,
-                     'offset': 0.014000232992524507,
-                     'overbought': 0.4950461159523033,
-                     'oversold': -0.5531968640287235,
-                     'rsi_fac': -0.018568979316385556,
-                     'rsi_len_fac': 31.29746722530215,
-                     'slow_multiplier': 1.4159262079687578,
-                     'sma_fac': 1.0218760496716448,
-                     'sma_len_fac': 207.9272656645609}
+    parameters = {
+                    'am_fac': 1.0016745918078986,
+                    'am_offset': -1.998351308946578,
+                    'ema_fac': 1.0291117662314344,
+                    'ema_len_fac': 31.159959906570542,
+                    'fast_multiplier': 1.155712824244134,
+                    'len_fac': 58.27989501616616,
+                    'mac_fac': 1.07959676513043,
+                    'macd_len_fac': 31.269496885540594,
+                    'macd_multiplier': 0.4652434926690195,
+                    'offset': 0.09677213974458206,
+                    'rsi_fac': -0.018821589989063345,
+                    'rsi_len_fac': 31.134463890870805,
+                    'slow_multiplier': 1.4142928678269029,
+                    'sma_fac': 1.0263177732368447,
+                    'sma_len_fac': 217.51284572764493
+                 }
+
+
 
     '''
     parameters = { 'len_fac'         : 60,
