@@ -90,6 +90,9 @@ def nelder_mead(f, x_start,
         return: tuple (best parameter array, best score)
     '''
 
+
+    print("Nelder-mead parameters:", alpha, gamma, rho, sigma )
+
     # init
     dim = len(x_start)
     prev_best = f(x_start)
@@ -251,24 +254,22 @@ def f(x):
 if __name__ == '__main__':
 
     parameters = {
-                    'am_fac': 1.0016745918078986,
-                    'am_offset': -1.998351308946578,
-                    'ema_fac': 1.0291117662314344,
-                    'ema_len_fac': 31.159959906570542,
-                    'fast_multiplier': 1.155712824244134,
-                    'len_fac': 58.27989501616616,
-                    'mac_fac': 1.07959676513043,
-                    'macd_len_fac': 31.269496885540594,
-                    'macd_multiplier': 0.4652434926690195,
-                    'offset': 0.09677213974458206,
-                    'rsi_fac': -0.018821589989063345,
-                    'rsi_len_fac': 31.134463890870805,
-                    'slow_multiplier': 1.4142928678269029,
-                    'sma_fac': 1.0263177732368447,
-                    'sma_len_fac': 217.51284572764493
-                 }
-
-
+                    'am_fac': 1.0126044146312323,
+                    'am_offset': -1.9824627949289193,
+                    'ema_fac': 1.0423760605896413,
+                    'ema_len_fac': 31.190767271115288,
+                    'fast_multiplier': 1.1665571476188767,
+                    'len_fac': 56.47278220507969,
+                    'mac_fac': 1.0815747464202425,
+                    'macd_len_fac': 28.746186886243137,
+                    'macd_multiplier': 0.46439394433353964,
+                    'offset': 0.10882543923569951,
+                    'rsi_fac': -0.0185862377434674,
+                    'rsi_len_fac': 32.07658980577076,
+                    'slow_multiplier': 1.4281917805361604,
+                    'sma_fac': 1.0243458576551303,
+                    'sma_len_fac': 249.82643465910132
+                 } # 454.269 %
 
     '''
     parameters = { 'len_fac'         : 60,
@@ -348,6 +349,14 @@ if __name__ == '__main__':
     #pars = np2par(nppars)
     #pprint.pprint(pars)
 
-    print(nelder_mead(f, nppars))
+    # Determine Nelder Mead parameters according to https://www.webpages.uidaho.edu/~fuchang/res/ANMS.pdf
+    n = len(parameters)
+    _alpha = 1.0
+    _gamma = 1 + 2/n
+    _rho   = 0.75-1/(2*n)
+    _sigma = 1 - 1/n
+
+
+    print(nelder_mead(f, nppars, alpha=_alpha, gamma=_gamma, rho=_rho, sigma=_sigma))
    
 

@@ -60,13 +60,13 @@ class Broker:
     # DGB - ordered 16000, obtained 15984
     # 15984.0/16000 = 0.999
 
-        minimum   = 0.0001  
-        increment = 0.00001
+        minimum   = 0.001  
+        increment = 0.0001
 
         if amount < minimum: return 0.0
 
         n_increments = math.floor( (amount / increment) * (1 - self.fee) )
-        amount       = n_increments * increment
+        amount       = round(n_increments * increment, 4)
 
         if amount < minimum: return 0.0
 
