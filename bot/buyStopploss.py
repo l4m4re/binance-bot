@@ -14,9 +14,11 @@ if symbol == 'THETAUSDT':
     target        = 0.0333
     stoplossfac   = 1.30            
     breakouts     = [  # level, stoplossfac, already hit
-                        (4.50, 1.21, False),
-                        (4.10, 1.15, False),
+                        (5.00, 1.21, False),
+                        (4.50, 1.15, False),
+                        (4.10, 1.12, False),
                         (4.00, 1.10, False),
+                        (3.50, 1.05, False),
                     ]
     print("Start stoploss", startstoploss)
 
@@ -28,7 +30,8 @@ if symbol == 'TFUELUSDT':
     breakouts     = [  # level, stoplossfac, already hit
                         (0.22, 1.21, False),
                         (0.20, 1.15, False),
-                        (0.16, 1.10, False),
+                        (0.18, 1.10, False),
+                        (0.16, 1.05, False),
                     ]
     print("Start stoploss", startstoploss)
 
