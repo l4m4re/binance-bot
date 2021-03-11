@@ -5,35 +5,35 @@ from binance.client import Client
 from binance.enums import *
 from binance.websockets import BinanceSocketManager
 
-symbol        = 'THETAUSDT'
-#symbol        = 'TFUELUSDT'
+#symbol        = 'THETAUSDT'
+symbol        = 'TFUELUSDT'
 
 # sold at $4.339
 if symbol == 'THETAUSDT':
     startstoploss = 22.50
     target        = 0.0333
-    stoplossfac   = 2.50            
+    stoplossfac   = 1.30            
     breakouts     = [  # level, stoplossfac, already hit
-                        (4.34, 1.21, False),
-                        (2.00, 1.15, False),
-                        (1.50, 1.10, False),
+                        (4.50, 1.21, False),
+                        (4.10, 1.15, False),
+                        (4.00, 1.10, False),
                     ]
     print("Start stoploss", startstoploss)
 
 # sold at $0.140
 if symbol == 'TFUELUSDT':
-    startstoploss = 0.55
+    startstoploss = 1.55
     target        = 0.00111
-    stoplossfac   = 2.50            
+    stoplossfac   = 1.30            
     breakouts     = [  # level, stoplossfac, already hit
-                        (0.16, 1.21, False),
-                        (0.09, 1.15, False),
-                        (0.02, 1.10, False),
+                        (0.22, 1.21, False),
+                        (0.20, 1.15, False),
+                        (0.16, 1.10, False),
                     ]
     print("Start stoploss", startstoploss)
 
 fraction      = 0.499   # buy for fraction of usdt available at script start
-live          = False
+live          = True
 
 
 avail_usdt    = 0.0
