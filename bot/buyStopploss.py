@@ -14,18 +14,17 @@ if symbol == 'THETAUSDT':
     target        = 0.222
     stoplossfac   = 2.50            
     breakouts     = [  # level, stoplossfac, fraction, already hit
-                        (7.20, 1.50, 0.111, False),  # 10.80
-                        (6.00, 1.40, 0.111, False),  #  8.40
-                        (5.50, 1.35, 0.111, False),  #  7.43
-                        (4.50, 1.30, 0.222, False),  #  5.85
-                        (4.00, 1.25, 0.333, False),  #  5.00
-                        (3.50, 1.25, 0.444, False),  #  4.38
-                        (3.00, 1.22, 0.555, False),  #  3.66
-                        (2.50, 1.20, 0.666, False),  #  3.00
-                        (2.25, 1.17, 0.888, False),  #  2.63
-                        (2.00, 1.15, 0.999, False),  #  2.30
-                        (1.50, 1.13, 0.999, False),  #  1.69
-                        (1.00, 1.10, 0.999, False),  #  1.10
+                        (7.34, 1.50, 0.111, False),  # 11.01
+                        (6.00, 1.35, 0.111, False),  #  8.10
+                        (5.50, 1.20, 0.111, False),  #  6.60
+                        (4.50, 1.19, 0.222, False),  #  5.35
+                        (4.00, 1.19, 0.333, False),  #  4.76
+                        (3.50, 1.15, 0.444, False),  #  4.02
+                        (3.00, 1.15, 0.555, False),  #  3.45
+                        (2.75, 1.10, 0.666, False),  #  3.03
+                        (2.50, 1.10, 0.777, False),  #  2.75
+                        (2.25, 1.10, 0.888, False),  #  2.48
+                        (2.00, 1.10, 0.999, False),  #  2.20
                     ]
     print("Start stoploss", startstoploss)
 
@@ -43,7 +42,7 @@ if symbol == 'TFUELUSDT':
     print("Start stoploss", startstoploss)
 
 fraction      = 0.0111  # buy for fraction of usdt available at script start
-live          = False
+live          = True
 
 
 avail_usdt    = 0.0
@@ -221,11 +220,13 @@ if __name__ == '__main__':
     #pprint.pprint( getinfo(client, TRADE_SYMBOL) )
 
     avail_usdt,locked = getUsdtBalance(client)
+ 
+    frac = 0.999
 
-    amount = getAmount(client,symbol, avail_usdt*fraction, target)
+    amount = getAmount(client,symbol, avail_usdt*frac, target)
     print("We can buy", amount, "of", symbol, "at", target)
 
-    amount = getAmount(client,symbol, avail_usdt*fraction, startstoploss)
+    amount = getAmount(client,symbol, avail_usdt*frac, startstoploss)
     print("We can buy", amount, "of", symbol, "at", startstoploss)
 
     if live:
