@@ -5,8 +5,8 @@ from binance.client import Client
 from binance.enums import *
 from binance.websockets import BinanceSocketManager
 
-#symbol        = 'THETAUSDT'
-symbol        = 'TFUELUSDT'
+symbol        = 'THETAUSDT'
+#symbol        = 'TFUELUSDT'
 
 # sold at $4.339
 if symbol == 'THETAUSDT':
@@ -14,6 +14,7 @@ if symbol == 'THETAUSDT':
     target        = 0.222
     stoplossfac   = 2.50            
     breakouts     = [  # level, stoplossfac, fraction, already hit
+                        (7.20, 1.50, 0.111, False),
                         (6.00, 1.40, 0.111, False),
                         (5.50, 1.35, 0.222, False),
                         (4.50, 1.30, 0.333, False),
@@ -41,8 +42,8 @@ if symbol == 'TFUELUSDT':
                     ]
     print("Start stoploss", startstoploss)
 
-fraction      = 0.333   # buy for fraction of usdt available at script start
-live          = False
+fraction      = 0.0111  # buy for fraction of usdt available at script start
+live          = True
 
 
 avail_usdt    = 0.0
@@ -146,7 +147,7 @@ def buy (client, symbol):
 
 def on_message(msg):
 
-    global bought, client, symbol, cur_low, cur_stoploss, breakouts, stoplossfac
+    global bought, client, symbol, cur_low, cur_stoploss, breakouts, stoplossfac, fraction
 
     #print("message type: {}".format(msg['e']))
     #pprint.pprint(msg)
@@ -179,6 +180,7 @@ def on_message(msg):
                 if close < level:
                    print("breakout at", level, "hit. Adjusting fac to:", fac, "and fraction to:", frac) 
                    stoplossfac = fac
+                   fraction    = frac
                    breakouts[idx] = (level,fac,frac,True)
      
 
@@ -187,7 +189,7 @@ def on_message(msg):
             if cur_low * stoplossfac < cur_stoploss:
                 cur_stoploss = cur_low * stoplossfac
 
-        print('current price and stoploss:', close, cur_stoploss)
+        print('current price, factor, fraction and stoploss:', close, stoplossfac, fraction, cur_stoploss)
 
         if close > cur_stoploss:
             print('stoploss hit, buying at:', close)
