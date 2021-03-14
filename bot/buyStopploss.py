@@ -11,14 +11,20 @@ symbol        = 'TFUELUSDT'
 # sold at $4.339
 if symbol == 'THETAUSDT':
     startstoploss = 22.50
-    target        = 0.0333
-    stoplossfac   = 1.30            
-    breakouts     = [  # level, stoplossfac, already hit
-                        (5.00, 1.21, False),
-                        (4.50, 1.15, False),
-                        (4.10, 1.12, False),
-                        (4.00, 1.10, False),
-                        (3.50, 1.05, False),
+    target        = 0.222
+    stoplossfac   = 2.50            
+    breakouts     = [  # level, stoplossfac, fraction, already hit
+                        (6.00, 1.40, 0.111, False),
+                        (5.50, 1.35, 0.222, False),
+                        (4.50, 1.30, 0.333, False),
+                        (4.00, 1.25, 0.444, False),
+                        (3.50, 1.25, 0.555, False),
+                        (3.00, 1.22, 0.666, False),
+                        (2.50, 1.20, 0.777, False),
+                        (2.25, 1.17, 0.888, False),
+                        (2.00, 1.15, 0.999, False),
+                        (1.50, 1.13, 0.999, False),
+                        (1.00, 1.10, 0.999, False),
                     ]
     print("Start stoploss", startstoploss)
 
@@ -27,16 +33,16 @@ if symbol == 'TFUELUSDT':
     startstoploss = 1.55
     target        = 0.00111
     stoplossfac   = 1.30            
-    breakouts     = [  # level, stoplossfac, already hit
-                        (0.22, 1.21, False),
-                        (0.20, 1.15, False),
-                        (0.18, 1.10, False),
-                        (0.16, 1.05, False),
+    breakouts     = [  # level, stoplossfac, fraction, already hit
+                        (0.22, 1.21, 0.33, False),
+                        (0.20, 1.15, 0.33, False),
+                        (0.18, 1.10, 0.33, False),
+                        (0.16, 1.05, 0.33, False),
                     ]
     print("Start stoploss", startstoploss)
 
-fraction      = 0.499   # buy for fraction of usdt available at script start
-live          = True
+fraction      = 0.333   # buy for fraction of usdt available at script start
+live          = False
 
 
 avail_usdt    = 0.0
@@ -164,15 +170,16 @@ def on_message(msg):
             
             level = breakouts[idx][0]
             fac   = breakouts[idx][1]
-            hit   = breakouts[idx][2]
+            frac  = breakouts[idx][2]
+            hit   = breakouts[idx][3]
 
             if not hit:
                 #print ("checking if below", level)
 
                 if close < level:
-                   print("breakout at", level, "hit. Adjusting fac to:", fac) 
+                   print("breakout at", level, "hit. Adjusting fac to:", fac, "and fraction to:", frac) 
                    stoplossfac = fac
-                   breakouts[idx] = (level,fac,True)
+                   breakouts[idx] = (level,fac,frac,True)
      
 
         if close < cur_low:

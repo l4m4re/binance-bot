@@ -21,7 +21,7 @@ broker = None
 
 def par2np(par):
     return np.array([
-        math.log(par['len_fac'])/math.log(10),
+        math.log(par['len_fac'])/math.log(100),
         math.log(par['sma_len_fac'])/math.log(10),
         math.log(par['rsi_len_fac'])/math.log(10),
         math.log(par['ema_len_fac'])/math.log(10),
@@ -29,19 +29,19 @@ def par2np(par):
         par['fast_multiplier'],
         par['slow_multiplier'],
         par['macd_multiplier'],
-        par['sma_fac'],
-        par['rsi_fac'],
-        par['ema_fac'],
-        par['mac_fac'],
-        par['offset'],
-        par['am_fac'],
-        par['am_offset'],
+        par['sma_fac']/10,
+        par['rsi_fac']/10,
+        par['ema_fac']/10,
+        par['mac_fac']/10,
+        par['offset']/10,
+        par['am_fac']/10,
+        par['am_offset']/10,
     ]) 
 
 def np2par(np):
     par = {}
 
-    par['len_fac']         = math.pow(10,np[0])
+    par['len_fac']         = math.pow(100,np[0])
     par['sma_len_fac']     = math.pow(10,np[1])
     par['rsi_len_fac']     = math.pow(10,np[2])
     par['ema_len_fac']     = math.pow(10,np[3])
@@ -49,13 +49,13 @@ def np2par(np):
     par['fast_multiplier'] = np[5]
     par['slow_multiplier'] = np[6]
     par['macd_multiplier'] = np[7]
-    par['sma_fac']         = np[8]
-    par['rsi_fac']         = np[9]
-    par['ema_fac']         = np[10]
-    par['mac_fac']         = np[11]
-    par['offset']          = np[12]
-    par['am_fac']          = np[13]
-    par['am_offset']       = np[14]
+    par['sma_fac']         = np[8]*10
+    par['rsi_fac']         = np[9]*10
+    par['ema_fac']         = np[10]*10
+    par['mac_fac']         = np[11]*10
+    par['offset']          = np[12]*10
+    par['am_fac']          = np[13]*10
+    par['am_offset']       = np[14]*10
 
     return par
 
@@ -253,23 +253,23 @@ def f(x):
 
 if __name__ == '__main__':
 
-    parameters = {
+    parameters = { 
                     'am_fac': 1.0126044146312323,
-                    'am_offset': -1.9824627949289193,
+                    'am_offset': -1.390291787077809,
                     'ema_fac': 1.0423760605896413,
-                    'ema_len_fac': 31.190767271115288,
+                    'ema_len_fac': 31.19076727111527,
                     'fast_multiplier': 1.1665571476188767,
-                    'len_fac': 56.47278220507969,
+                    'len_fac': 56.47278220507966,
                     'mac_fac': 1.0815747464202425,
-                    'macd_len_fac': 28.746186886243137,
+                    'macd_len_fac': 28.746186886243123,
                     'macd_multiplier': 0.46439394433353964,
                     'offset': 0.10882543923569951,
                     'rsi_fac': -0.0185862377434674,
                     'rsi_len_fac': 32.07658980577076,
                     'slow_multiplier': 1.4281917805361604,
                     'sma_fac': 1.0243458576551303,
-                    'sma_len_fac': 249.82643465910132
-                 } # 454.269 %
+                    'sma_len_fac': 274.42349384873654
+                 }
 
     '''
     parameters = { 'len_fac'         : 60,
